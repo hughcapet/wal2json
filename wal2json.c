@@ -820,7 +820,11 @@ pg_decode_begin_txn_v1(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	}
 
 	if (data->include_timestamp)
+#if	PG_VERSION_NUM >= 150000
+		appendStringInfo(ctx->out, "%s\"timestamp\":%s\"%s\",%s", data->ht, data->sp, timestamptz_to_str(txn->xact_time.commit_time), data->nl);
+#else
 		appendStringInfo(ctx->out, "%s\"timestamp\":%s\"%s\",%s", data->ht, data->sp, timestamptz_to_str(txn->commit_time), data->nl);
+#endif
 
 #if PG_VERSION_NUM >= 90500
 	if (data->include_origin)
@@ -847,7 +851,11 @@ pg_decode_begin_txn_v2(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	if (data->include_xids)
 		appendStringInfo(ctx->out, ",\"xid\":%u", txn->xid);
 	if (data->include_timestamp)
-			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->commit_time));
+#if	PG_VERSION_NUM >= 150000
+		appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->xact_time.commit_time));
+#else
+		appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->commit_time));
+#endif
 
 #if PG_VERSION_NUM >= 90500
 	if (data->include_origin)
@@ -876,7 +884,9 @@ pg_decode_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 {
 	JsonDecodingData *data = ctx->output_plugin_private;
 
-#if PG_VERSION_NUM >= 100000
+#if	PG_VERSION_NUM >= 150000
+	OutputPluginUpdateProgress(ctx, false);
+#elif PG_VERSION_NUM >= 100000
 	OutputPluginUpdateProgress(ctx);
 #endif
 
@@ -925,7 +935,11 @@ pg_decode_commit_txn_v2(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	if (data->include_xids)
 		appendStringInfo(ctx->out, ",\"xid\":%u", txn->xid);
 	if (data->include_timestamp)
-			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->commit_time));
+#if	PG_VERSION_NUM >= 150000
+		appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->xact_time.commit_time));
+#else
+		appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->commit_time));
+#endif
 
 #if PG_VERSION_NUM >= 90500
 	if (data->include_origin)
@@ -2208,7 +2222,11 @@ pg_decode_write_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn, Relat
 		appendStringInfo(ctx->out, ",\"xid\":%u", txn->xid);
 
 	if (data->include_timestamp)
+#if	PG_VERSION_NUM >= 150000
+		appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->xact_time.commit_time));
+#else
 		appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->commit_time));
+#endif
 
 #if PG_VERSION_NUM >= 90500
 	if (data->include_origin)
@@ -2520,7 +2538,11 @@ pg_decode_message_v2(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	if (data->include_timestamp)
 	{
 		if (transactional)
+#if	PG_VERSION_NUM >= 150000
+			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->xact_time.commit_time));
+#else
 			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->commit_time));
+#endif
 		else
 			appendStringInfoString(ctx->out, ",\"timestamp\":null");
 	}
@@ -2638,7 +2660,12 @@ static void pg_decode_truncate_v1(LogicalDecodingContext *ctx,
 		appendStringInfo(ctx->out, "%s%s%s\"xid\":%s%u,%s", data->ht, data->ht, data->ht, data->sp, txn->xid, data->nl);
 
 	if (data->include_timestamp)
+#if	PG_VERSION_NUM >= 150000
+		appendStringInfo(ctx->out, "%s%s%s\"timestamp\":%s\"%s\",%s", data->ht, data->ht, data->ht, data->sp, timestamptz_to_str(txn->xact_time.commit_time), data->nl);
+#else
 		appendStringInfo(ctx->out, "%s%s%s\"timestamp\":%s\"%s\",%s", data->ht, data->ht, data->ht, data->sp, timestamptz_to_str(txn->commit_time), data->nl);
+#endif
+
 
 	if (data->include_origin)
 		appendStringInfo(ctx->out, "%s%s%s\"origin\":%s%u,%s", data->ht, data->ht, data->ht, data->sp, txn->origin_id, data->nl);
@@ -2723,7 +2750,11 @@ static void pg_decode_truncate_v2(LogicalDecodingContext *ctx,
 			appendStringInfo(ctx->out, ",\"xid\":%u", txn->xid);
 
 		if (data->include_timestamp)
+#if	PG_VERSION_NUM >= 150000
+			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->xact_time.commit_time));
+#else
 			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->commit_time));
+#endif
 
 		if (data->include_origin)
 			appendStringInfo(ctx->out, ",\"origin\":%u", txn->origin_id);
